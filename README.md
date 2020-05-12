@@ -24,7 +24,6 @@ with:
 ```
 
 > `<!-- auto-about -->` is used because the file being pulled is called _**about**.md_
-> If the url was _https://test.com/info.html_, the pattern would be `<!-- auto-info -->`
 
 ### Complete example
 
