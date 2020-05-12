@@ -359,26 +359,28 @@ module.exports = require("os");
 /***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
 
 const core = __webpack_require__(470)
-const downloadRemoteFile = __webpack_require__(174)
+const injectRemoteFile = __webpack_require__(316)
 
 // most @actions toolkit packages have async methods
 async function run() {
   try {
     const url = core.getInput('url')
-    const path = core.getInput('path')
-    const overwrite = core.getInput('overwrite')
-    const filename = core.getInput('filename')
+    const target = core.getInput('target')
+    const pattern = core.getInput('pattern')
+    const force = core.getInput('force')
 
-    const file_changed = await downloadRemoteFile(
+    const [pattern_text, file_changed] = await injectRemoteFile(
       url,
-      path,
-      overwrite,
-      filename
+      target,
+      pattern,
+      force
     )
 
-    console.log(`File changed: ${file_changed || 'none'}`)
+    core.setOutput('pattern', pattern_text)
+    console.log(`Pattern used: ${pattern_text}`)
 
     core.setOutput('file_changed', file_changed)
+    console.log(`File changed: ${file_changed || '0'}`)
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -396,60 +398,83 @@ module.exports = require("child_process");
 
 /***/ }),
 
-/***/ 174:
+/***/ 211:
+/***/ (function(module) {
+
+module.exports = require("https");
+
+/***/ }),
+
+/***/ 316:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 const io = __webpack_require__(1)
 const fetch = __webpack_require__(454)
 const fs = __webpack_require__(747)
 
-let downloadRemoteFile = async function (
+let injectRemoteFile = async function (
   url,
-  path = '',
-  overwrite = true,
-  filename = ''
+  target,
+  input_pattern = '',
+  force = true
 ) {
-  const url_parts = url.match(/^(https?).+\/([^/]+)$/)
+  const url_parts = url.match(
+    /^(https?):\/\/[^/$]+\/?($|(([^/]+\/)*([^$.?]+)(\.\w+)*(\?(.)*)?$))/i
+  )
 
-  if (!url_parts || !url_parts[1] || !url_parts[2])
-    throw Error(
-      'Please ensure your url is a valid http(s) url and ends with an actual file name'
-    )
+  if (!url_parts || !url_parts[1])
+    throw Error('Please ensure your url is a valid http(s) url')
 
-  const path_parts = path.match(/^\.?\/?(.*)\/?$/)
-  const dir = (path_parts[1] ? path_parts[1] : '.') + '/'
-  const new_filename = dir + (filename ? filename : url_parts[2])
+  if (!input_pattern && !url_parts[5])
+    throw Error('Could not detect a pattern, please specify it manually')
 
-  return await fetch(url)
-    .then((res) => res.buffer())
-    .then(async (buffer) => {
-      if (fs.existsSync(new_filename)) {
-        const original_file = fs.readFileSync(new_filename)
-        const new_file = buffer
+  if (!fs.existsSync(target))
+    throw Error('Please ensure your target file already exists')
 
-        if (original_file.equals(new_file)) {
-          return ''
-        } else if (!original_file.equals(new_file) && overwrite == false) {
-          throw Error('This file already exists and is different')
-        }
+  const pattern_text =
+    input_pattern || `<!-- auto-${url_parts[5].toLowerCase()} -->`
+
+  const pattern_regex = new RegExp(
+    `(${pattern_text})[\\s\\S]*${pattern_text}`,
+    'i'
+  )
+  const target_content = fs.readFileSync(target, 'utf8')
+
+  return fetch(url)
+    .then((res) => res.text())
+    .then((partial_content) => {
+      // Remove any existing match of the pattern in the partial
+      let new_partial_content = partial_content.replace(
+        RegExp(pattern_text, 'ig'),
+        ''
+      )
+
+      // Add the pattern at the begining and at the end of the partial
+      new_partial_content =
+        pattern_text + '\n' + new_partial_content + '\n' + pattern_text
+
+      let new_target_content
+
+      if (!pattern_regex.test(target_content) && force == true) {
+        new_target_content = target_content + '\n' + new_partial_content
+      } else {
+        new_target_content = target_content.replace(
+          pattern_regex,
+          new_partial_content
+        )
       }
 
-      await io.mkdirP(dir)
-      fs.writeFileSync(new_filename, buffer)
+      if (target_content == new_target_content) return [pattern_text, '']
+      else {
+        fs.writeFileSync(target, new_target_content)
 
-      return new_filename
+        return [pattern_text, target]
+      }
     })
 }
 
-module.exports = downloadRemoteFile
+module.exports = injectRemoteFile
 
-
-/***/ }),
-
-/***/ 211:
-/***/ (function(module) {
-
-module.exports = require("https");
 
 /***/ }),
 
