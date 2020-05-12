@@ -13,7 +13,7 @@ async function run() {
       url,
       target,
       pattern,
-      force
+      !force || force == 'false' ? false : true
     )
 
     core.setOutput('pattern', pattern_text)
