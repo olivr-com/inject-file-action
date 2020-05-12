@@ -1,0 +1,37 @@
+{
+  "name": "inject-file-action",
+  "version": "1.0.0",
+  "description": "GitHub action to inject the content of a remote file into a file of your repo.",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint index.js",
+    "package": "ncc build index.js -o dist",
+    "test": "eslint index.js && jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/olivr-com/inject-file-action.git"
+  },
+  "keywords": [
+    "GitHub",
+    "Actions",
+    "JavaScript"
+  ],
+  "author": "GitHub",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/olivr-com/inject-file-action/issues"
+  },
+  "homepage": "https://github.com/olivr-com/inject-file-action#readme",
+  "dependencies": {
+    "@actions/core": "^1.1.1",
+    "@actions/io": "^1.0.2",
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {
+    "@zeit/ncc": "^0.20.5",
+    "eslint": "^6.3.0",
+    "jest": "^26.0.1",
+    "jest-fetch-mock": "^3.0.3"
+  }
+}

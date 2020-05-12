@@ -1,0 +1,26 @@
+name: 'Inject file action'
+description: 'Inject the content of a remote file into a file of your repo'
+branding:
+  icon: 'file-plus'
+  color: 'white'
+inputs:
+  url:
+    description: 'URL of the remote file'
+    required: true
+  target:
+    description: 'Relative path to the local file you want to modify'
+    required: true
+  pattern:
+    description: 'Pattern to identify where and what to replace in the target file'
+    default: ''
+  force:
+    description: 'Append at the bottom of the target file if the pattern is not found'
+    default: true
+outputs:
+  pattern:
+    description: 'Pattern used for the replacement (useful to debug)'
+  file_changed:
+    description: 'Relative path of the file that has changed'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
